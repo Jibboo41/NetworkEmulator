@@ -37,6 +37,10 @@ protected:
 
 private:
     void openConfigDialog();
+    static void drawRouterIcon(QPainter *p);
+    static void drawSwitchIcon(QPainter *p);
+    static void drawHubIcon(QPainter *p);
+    static void drawPCIcon(QPainter *p);
 
     Device          *m_device;
     QList<LinkItem *> m_links;
