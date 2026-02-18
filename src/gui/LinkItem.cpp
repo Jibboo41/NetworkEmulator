@@ -43,13 +43,13 @@ QRectF LinkItem::boundingRect() const
     // Labels are drawn at: endpoint ± unit*22 + perp*8
     // Use QFontMetrics so we account for any label length and line angle.
     const qreal len = m_line.length();
-    if (len > 60.0) {
+    if (len > 85.0) {
         const QPointF dir  = m_line.p2() - m_line.p1();
         const QPointF unit = dir / len;
-        const QPointF perp(-unit.y() * 8, unit.x() * 8);
+        const QPointF perp(-unit.y() * 10, unit.x() * 10);
 
-        const QPointF lbl1 = m_line.p1() + unit * 22.0 + perp;
-        const QPointF lbl2 = m_line.p2() - unit * 22.0 + perp;
+        const QPointF lbl1 = m_line.p1() + unit * 35.0 + perp;
+        const QPointF lbl2 = m_line.p2() - unit * 35.0 + perp;
 
         const QFontMetrics fm(QFont("Arial", 7));
         rect = rect.united(QRectF(fm.boundingRect(m_link.interface1)).translated(lbl1));
@@ -93,15 +93,17 @@ void LinkItem::paint(QPainter *painter,
     QFont f("Arial", 7);
     painter->setFont(f);
 
-    // Position labels 22px along the line from each end
+    // Place labels just outside the device icon edge (icon half-size ~27px,
+    // so offset 35px clears all device shapes).  Skip on very short links
+    // where the two labels would collide.
     const QPointF dir = (m_line.p2() - m_line.p1());
     const qreal len = std::sqrt(dir.x() * dir.x() + dir.y() * dir.y());
-    if (len > 60.0) {
+    if (len > 85.0) {
         const QPointF unit = dir / len;
-        const QPointF perp(-unit.y() * 8, unit.x() * 8);
+        const QPointF perp(-unit.y() * 10, unit.x() * 10);
 
-        const QPointF lbl1 = m_line.p1() + unit * 22.0 + perp;
-        const QPointF lbl2 = m_line.p2() - unit * 22.0 + perp;
+        const QPointF lbl1 = m_line.p1() + unit * 35.0 + perp;
+        const QPointF lbl2 = m_line.p2() - unit * 35.0 + perp;
         painter->drawText(lbl1, m_link.interface1);
         painter->drawText(lbl2, m_link.interface2);
     }
