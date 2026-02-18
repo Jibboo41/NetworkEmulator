@@ -52,11 +52,50 @@ set(HEADERS
     src/gui/dialogs/HubDialog.h
 )
 
-add_executable(NetworkEmulator WIN32 ${SOURCES} ${HEADERS})
+# ---------------------------------------------------------------------------
+# Shared library sources (everything except the GUI entry point)
+# ---------------------------------------------------------------------------
+set(CORE_SOURCES
+    src/models/Device.cpp
+    src/models/Link.cpp
+    src/models/Network.cpp
+    src/routing/RoutingEngine.cpp
+    src/routing/RIPv2.cpp
+    src/routing/OSPF.cpp
+    src/routing/StaticRouting.cpp
+    src/routing/PIMDenseMode.cpp
+    src/validation/Validator.cpp
+    src/gui/MainWindow.cpp
+    src/gui/NetworkCanvas.cpp
+    src/gui/DeviceItem.cpp
+    src/gui/LinkItem.cpp
+    src/gui/dialogs/RouterDialog.cpp
+    src/gui/dialogs/SwitchDialog.cpp
+    src/gui/dialogs/PCDialog.cpp
+    src/gui/dialogs/HubDialog.cpp
+)
+
+# ---------------------------------------------------------------------------
+# Main application
+# ---------------------------------------------------------------------------
+add_executable(NetworkEmulator WIN32 src/main.cpp ${CORE_SOURCES} ${HEADERS})
 
 target_include_directories(NetworkEmulator PRIVATE src)
 
 target_link_libraries(NetworkEmulator PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+)
+
+# ---------------------------------------------------------------------------
+# Headless test executable
+# ---------------------------------------------------------------------------
+add_executable(NetworkEmulatorTests src/test_main.cpp ${CORE_SOURCES} ${HEADERS})
+
+target_include_directories(NetworkEmulatorTests PRIVATE src)
+
+target_link_libraries(NetworkEmulatorTests PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
