@@ -27,12 +27,17 @@ public:
                  const QStyleOptionGraphicsItem *option,
                  QWidget *widget = nullptr) override;
 
+signals:
+    void deleteRequested();
+
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
     void     mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) override;
     void     contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
 
 private:
+    void openConfigDialog();
+
     Device          *m_device;
     QList<LinkItem *> m_links;
     bool             m_highlighted = false;

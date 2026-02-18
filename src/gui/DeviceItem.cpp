@@ -120,7 +120,7 @@ QVariant DeviceItem::itemChange(GraphicsItemChange change, const QVariant &value
     return QGraphicsObject::itemChange(change, value);
 }
 
-void DeviceItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
+void DeviceItem::openConfigDialog()
 {
     QWidget *parentWidget = nullptr;
     if (scene() && !scene()->views().isEmpty())
@@ -150,7 +150,12 @@ void DeviceItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
     }
     update();
     setToolTip(m_device->name());
-    event->accept();
+}
+
+void DeviceItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
+{
+    openConfigDialog();
+    if (event) event->accept();
 }
 
 void DeviceItem::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
@@ -160,14 +165,13 @@ void DeviceItem::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
     QAction *deleteAction = menu.addAction("Delete");
 
     QAction *chosen = menu.exec(event->screenPos());
-    if (chosen == configAction) {
-        mouseDoubleClickEvent(nullptr); // reuse dialog logic
-    } else if (chosen == deleteAction) {
-        // Signal deletion via the scene; NetworkCanvas handles removal
-        emit scene()->changed(QList<QRectF>());
-        // Emit a custom signal handled by NetworkCanvas
-        setData(0, "delete");
-        update();
-    }
     event->accept();
+
+    if (chosen == configAction) {
+        openConfigDialog();
+    } else if (chosen == deleteAction) {
+        // Emit via queued connection so this event handler fully unwinds
+        // before the item is deleted by NetworkCanvas.
+        emit deleteRequested();
+    }
 }

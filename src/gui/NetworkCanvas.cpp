@@ -91,6 +91,7 @@ void NetworkCanvas::rebuildFromNetwork()
         item->setPos(dev->x(), dev->y());
         m_scene->addItem(item);
         m_deviceItems.insert(dev->id(), item);
+        connectItemSignals(item);
     }
     for (const Link *link : m_network->links()) {
         DeviceItem *src = m_deviceItems.value(link->device1Id);
@@ -181,6 +182,18 @@ void NetworkCanvas::drawBackground(QPainter *painter, const QRectF &rect)
 }
 
 // ---------------------------------------------------------------------------
+// Signal wiring
+// ---------------------------------------------------------------------------
+void NetworkCanvas::connectItemSignals(DeviceItem *item)
+{
+    // Use Qt::QueuedConnection so the item's own event handler fully unwinds
+    // before deleteDeviceItem() is called and the item is destroyed.
+    connect(item, &DeviceItem::deleteRequested, this, [this, item]() {
+        deleteDeviceItem(item);
+    }, Qt::QueuedConnection);
+}
+
+// ---------------------------------------------------------------------------
 // Placement
 // ---------------------------------------------------------------------------
 void NetworkCanvas::placeDevice(Device::Type type, const QPointF &scenePos)
@@ -215,6 +228,7 @@ void NetworkCanvas::placeDevice(Device::Type type, const QPointF &scenePos)
     item->setPos(scenePos);
     m_scene->addItem(item);
     m_deviceItems.insert(dev->id(), item);
+    connectItemSignals(item);
 
     emit statusMessage(QString("Placed %1. Double-click to configure.").arg(name));
 }

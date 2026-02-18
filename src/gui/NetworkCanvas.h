@@ -32,6 +32,7 @@ protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;
 
 private:
+    void connectItemSignals(DeviceItem *item);
     void placeDevice(Device::Type type, const QPointF &scenePos);
     void startConnect(DeviceItem *item);
     void finishConnect(DeviceItem *item);
