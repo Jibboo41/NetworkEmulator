@@ -47,13 +47,13 @@ void MainWindow::setupMenuBar()
 {
     // File
     QMenu *fileMenu = menuBar()->addMenu("&File");
-    fileMenu->addAction("&New",       this, &MainWindow::newNetwork,    QKeySequence::New);
-    fileMenu->addAction("&Open...",   this, &MainWindow::openNetwork,   QKeySequence::Open);
+    fileMenu->addAction("&New",        QKeySequence::New,    this, &MainWindow::newNetwork);
+    fileMenu->addAction("&Open...",    QKeySequence::Open,   this, &MainWindow::openNetwork);
     fileMenu->addSeparator();
-    fileMenu->addAction("&Save",      this, &MainWindow::saveNetwork,   QKeySequence::Save);
-    fileMenu->addAction("Save &As...",this, &MainWindow::saveNetworkAs, QKeySequence::SaveAs);
+    fileMenu->addAction("&Save",       QKeySequence::Save,   this, &MainWindow::saveNetwork);
+    fileMenu->addAction("Save &As...", QKeySequence::SaveAs, this, &MainWindow::saveNetworkAs);
     fileMenu->addSeparator();
-    fileMenu->addAction("E&xit",      qApp, &QApplication::quit,        QKeySequence::Quit);
+    fileMenu->addAction("E&xit",       QKeySequence::Quit,   qApp, &QApplication::quit);
 
     // Simulate
     QMenu *simMenu = menuBar()->addMenu("&Simulate");
@@ -62,7 +62,7 @@ void MainWindow::setupMenuBar()
 
     // Validate
     QMenu *valMenu = menuBar()->addMenu("&Validate");
-    valMenu->addAction("&Validate Network", this, &MainWindow::validateNetwork, Qt::Key_F5);
+    valMenu->addAction("&Validate Network", QKeySequence(Qt::Key_F5), this, &MainWindow::validateNetwork);
 
     // Help
     QMenu *helpMenu = menuBar()->addMenu("&Help");
