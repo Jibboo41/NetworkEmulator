@@ -36,8 +36,28 @@ void LinkItem::updatePosition()
 
 QRectF LinkItem::boundingRect() const
 {
-    const qreal extra = 10.0;
-    return QRectF(m_line.p1(), m_line.p2()).normalized().adjusted(-extra, -extra, extra, extra);
+    // Start with the line itself plus pen-width margin
+    QRectF rect = QRectF(m_line.p1(), m_line.p2()).normalized().adjusted(-2, -2, 2, 2);
+
+    // Grow to include the interface label text rectangles.
+    // Labels are drawn at: endpoint ± unit*22 + perp*8
+    // Use QFontMetrics so we account for any label length and line angle.
+    const qreal len = m_line.length();
+    if (len > 60.0) {
+        const QPointF dir  = m_line.p2() - m_line.p1();
+        const QPointF unit = dir / len;
+        const QPointF perp(-unit.y() * 8, unit.x() * 8);
+
+        const QPointF lbl1 = m_line.p1() + unit * 22.0 + perp;
+        const QPointF lbl2 = m_line.p2() - unit * 22.0 + perp;
+
+        const QFontMetrics fm(QFont("Arial", 7));
+        rect = rect.united(QRectF(fm.boundingRect(m_link.interface1)).translated(lbl1));
+        rect = rect.united(QRectF(fm.boundingRect(m_link.interface2)).translated(lbl2));
+    }
+
+    // Small extra margin for antialiasing / sub-pixel rendering
+    return rect.adjusted(-2, -2, 2, 2);
 }
 
 QPainterPath LinkItem::shape() const
