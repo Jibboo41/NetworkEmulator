@@ -3,6 +3,7 @@
 #include "models/Network.h"
 #include "routing/RoutingEngine.h"
 #include "validation/Validator.h"
+#include <QUuid>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -47,13 +48,15 @@ void MainWindow::setupMenuBar()
 {
     // File
     QMenu *fileMenu = menuBar()->addMenu("&File");
-    fileMenu->addAction("&New",        QKeySequence::New,    this, &MainWindow::newNetwork);
-    fileMenu->addAction("&Open...",    QKeySequence::Open,   this, &MainWindow::openNetwork);
+    fileMenu->addAction("&New",              QKeySequence::New,    this, &MainWindow::newNetwork);
+    fileMenu->addAction("&Open...",          QKeySequence::Open,   this, &MainWindow::openNetwork);
+    fileMenu->addAction("Load &Sample Network", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N),
+                        this, &MainWindow::createSampleNetwork);
     fileMenu->addSeparator();
-    fileMenu->addAction("&Save",       QKeySequence::Save,   this, &MainWindow::saveNetwork);
-    fileMenu->addAction("Save &As...", QKeySequence::SaveAs, this, &MainWindow::saveNetworkAs);
+    fileMenu->addAction("&Save",             QKeySequence::Save,   this, &MainWindow::saveNetwork);
+    fileMenu->addAction("Save &As...",       QKeySequence::SaveAs, this, &MainWindow::saveNetworkAs);
     fileMenu->addSeparator();
-    fileMenu->addAction("E&xit",       QKeySequence::Quit,   qApp, &QApplication::quit);
+    fileMenu->addAction("E&xit",             QKeySequence::Quit,   qApp, &QApplication::quit);
 
     // Simulate
     QMenu *simMenu = menuBar()->addMenu("&Simulate");
@@ -366,4 +369,119 @@ void MainWindow::closeEvent(QCloseEvent *event)
         event->accept();
     else
         event->ignore();
+}
+
+// ---------------------------------------------------------------------------
+// Sample Network
+// ---------------------------------------------------------------------------
+void MainWindow::createSampleNetwork()
+{
+    if (!confirmDiscardChanges()) return;
+    m_canvas->clear();
+    m_network->clear();
+
+    // ---- Routers ----------------------------------------------------------
+    auto *r1 = new Router("R1");
+    r1->setPosition(-350, 0);
+    r1->setRoutingProtocol(Router::RoutingProtocol::RIPv2);
+    r1->getInterface("Gi0/0")->ipAddress  = "10.0.0.1";
+    r1->getInterface("Gi0/0")->subnetMask = "255.255.255.252";
+    r1->getInterface("Gi0/1")->ipAddress  = "192.168.1.1";
+    r1->getInterface("Gi0/1")->subnetMask = "255.255.255.0";
+    r1->ripv2Config().networks            = {"192.168.1.0", "10.0.0.0"};
+
+    auto *r2 = new Router("R2");
+    r2->setPosition(0, 0);
+    r2->setRoutingProtocol(Router::RoutingProtocol::RIPv2);
+    r2->getInterface("Gi0/0")->ipAddress  = "10.0.0.2";
+    r2->getInterface("Gi0/0")->subnetMask = "255.255.255.252";
+    r2->getInterface("Gi0/1")->ipAddress  = "172.16.0.1";
+    r2->getInterface("Gi0/1")->subnetMask = "255.255.0.0";
+    r2->getInterface("Gi0/2")->ipAddress  = "10.0.1.1";
+    r2->getInterface("Gi0/2")->subnetMask = "255.255.255.252";
+    r2->ripv2Config().networks            = {"172.16.0.0", "10.0.0.0", "10.0.1.0"};
+
+    auto *r3 = new Router("R3");
+    r3->setPosition(350, 0);
+    r3->setRoutingProtocol(Router::RoutingProtocol::PIM_DM);
+    r3->getInterface("Gi0/0")->ipAddress  = "10.0.1.2";
+    r3->getInterface("Gi0/0")->subnetMask = "255.255.255.252";
+    r3->getInterface("Gi0/1")->ipAddress  = "192.168.2.1";
+    r3->getInterface("Gi0/1")->subnetMask = "255.255.255.0";
+    r3->pimdmConfig().enabledInterfaces   = {"Gi0/0", "Gi0/1"};
+
+    // ---- Switches ---------------------------------------------------------
+    auto *sw1 = new Switch("SW1");
+    sw1->setPosition(-350, -220);
+
+    auto *sw2 = new Switch("SW2");
+    sw2->setPosition(0, -220);
+
+    // ---- Hub --------------------------------------------------------------
+    auto *hub1 = new Hub("Hub1");
+    hub1->setPosition(350, -220);
+
+    // ---- PCs --------------------------------------------------------------
+    auto makePc = [](const QString &name, const QString &ip,
+                     const QString &mask, const QString &gw,
+                     qreal x, qreal y) -> PC * {
+        auto *pc = new PC(name);
+        pc->setPosition(x, y);
+        pc->getInterface("eth0")->ipAddress  = ip;
+        pc->getInterface("eth0")->subnetMask = mask;
+        pc->setDefaultGateway(gw);
+        return pc;
+    };
+
+    auto *pc1 = makePc("PC1", "192.168.1.10", "255.255.255.0", "192.168.1.1", -470, -400);
+    auto *pc2 = makePc("PC2", "192.168.1.20", "255.255.255.0", "192.168.1.1", -230, -400);
+    auto *pc3 = makePc("PC3", "172.16.0.10",  "255.255.0.0",   "172.16.0.1",  -120, -400);
+    auto *pc4 = makePc("PC4", "172.16.0.20",  "255.255.0.0",   "172.16.0.1",   120, -400);
+    auto *pc5 = makePc("PC5", "192.168.2.10", "255.255.255.0", "192.168.2.1",  230, -400);
+    auto *pc6 = makePc("PC6", "192.168.2.20", "255.255.255.0", "192.168.2.1",  470, -400);
+
+    // ---- Add devices to network (network takes ownership) -----------------
+    m_network->addDevice(r1);
+    m_network->addDevice(r2);
+    m_network->addDevice(r3);
+    m_network->addDevice(sw1);
+    m_network->addDevice(sw2);
+    m_network->addDevice(hub1);
+    m_network->addDevice(pc1);
+    m_network->addDevice(pc2);
+    m_network->addDevice(pc3);
+    m_network->addDevice(pc4);
+    m_network->addDevice(pc5);
+    m_network->addDevice(pc6);
+
+    // ---- Links ------------------------------------------------------------
+    auto makeLink = [](const QString &d1, const QString &i1,
+                       const QString &d2, const QString &i2) -> Link {
+        Link l;
+        l.id         = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        l.device1Id  = d1;
+        l.interface1 = i1;
+        l.device2Id  = d2;
+        l.interface2 = i2;
+        return l;
+    };
+
+    m_network->addLink(makeLink(r1->id(),   "Gi0/0", r2->id(),   "Gi0/0")); // WAN R1-R2
+    m_network->addLink(makeLink(r2->id(),   "Gi0/2", r3->id(),   "Gi0/0")); // WAN R2-R3
+    m_network->addLink(makeLink(r1->id(),   "Gi0/1", sw1->id(),  "Fa0/0")); // R1 -> SW1
+    m_network->addLink(makeLink(sw1->id(),  "Fa0/1", pc1->id(),  "eth0"));  // SW1 -> PC1
+    m_network->addLink(makeLink(sw1->id(),  "Fa0/2", pc2->id(),  "eth0"));  // SW1 -> PC2
+    m_network->addLink(makeLink(r2->id(),   "Gi0/1", sw2->id(),  "Fa0/0")); // R2 -> SW2
+    m_network->addLink(makeLink(sw2->id(),  "Fa0/1", pc3->id(),  "eth0"));  // SW2 -> PC3
+    m_network->addLink(makeLink(sw2->id(),  "Fa0/2", pc4->id(),  "eth0"));  // SW2 -> PC4
+    m_network->addLink(makeLink(r3->id(),   "Gi0/1", hub1->id(), "Port0")); // R3 -> Hub1
+    m_network->addLink(makeLink(hub1->id(), "Port1", pc5->id(),  "eth0"));  // Hub1 -> PC5
+    m_network->addLink(makeLink(hub1->id(), "Port2", pc6->id(),  "eth0"));  // Hub1 -> PC6
+
+    // ---- Sync canvas and state --------------------------------------------
+    m_canvas->rebuildFromNetwork();
+    m_currentFile.clear();
+    m_modified = false;
+    updateTitle();
+    onStatusMessage("Sample network loaded: R1+R2 (RIPv2), R3 (PIM-DM), SW1, SW2, Hub1, PC1-PC6.");
 }

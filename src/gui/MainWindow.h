@@ -25,6 +25,7 @@ private slots:
     void openNetwork();
     bool saveNetwork();
     bool saveNetworkAs();
+    void createSampleNetwork();
     void runSimulation();
     void runSimulationWithPim();
     void validateNetwork();
