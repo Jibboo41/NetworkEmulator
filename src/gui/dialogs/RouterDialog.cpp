@@ -139,8 +139,10 @@ void RouterDialog::buildRoutingTab(QTabWidget *tabs)
     ripBtnLayout->addStretch();
     ripLayout->addLayout(ripBtnLayout);
     connect(ripAddBtn, &QPushButton::clicked, this, [this]() {
-        m_ripNetList->addItem("0.0.0.0");
-        m_ripNetList->editItem(m_ripNetList->item(m_ripNetList->count() - 1));
+        auto *item = new QListWidgetItem("0.0.0.0");
+        item->setFlags(item->flags() | Qt::ItemIsEditable);
+        m_ripNetList->addItem(item);
+        m_ripNetList->editItem(item);
     });
     connect(ripDelBtn, &QPushButton::clicked, this, [this]() {
         qDeleteAll(m_ripNetList->selectedItems());
@@ -203,8 +205,11 @@ void RouterDialog::populateFields()
     }
 
     // RIPv2 networks
-    for (const auto &net : m_router->ripv2Config().networks)
-        m_ripNetList->addItem(net);
+    for (const auto &net : m_router->ripv2Config().networks) {
+        auto *item = new QListWidgetItem(net);
+        item->setFlags(item->flags() | Qt::ItemIsEditable);
+        m_ripNetList->addItem(item);
+    }
 
     // OSPF
     m_ospfRidEdit->setText(m_router->ospfConfig().routerId);
