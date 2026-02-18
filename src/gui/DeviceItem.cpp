@@ -34,8 +34,10 @@ void DeviceItem::removeLink(LinkItem *link) { m_links.removeAll(link); }
 QRectF DeviceItem::boundingRect() const
 {
     const qreal half = SIZE / 2.0;
-    // Extra 20px below for the name label
-    return QRectF(-half - 2, -half - 2, SIZE + 4, SIZE + 24);
+    // Ring drawn at -half-4 with a 2.5px pen (1.25px bleed) → need ≥6px margin.
+    // Extra 20px below for the name label.
+    const qreal m = 6.0;
+    return QRectF(-half - m, -half - m, SIZE + 2 * m, SIZE + 2 * m + 20);
 }
 
 void DeviceItem::paint(QPainter *painter,
