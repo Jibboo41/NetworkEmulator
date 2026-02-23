@@ -63,6 +63,24 @@ void DeviceItem::paint(QPainter *painter,
         case Device::Type::PC:     drawPCIcon(painter);     break;
     }
 
+    // Host PC badge: small green pill in the bottom-right of the router icon
+    if (m_device->deviceType() == Device::Type::Router) {
+        if (auto *router = qobject_cast<Router *>(m_device)) {
+            if (router->isHostPC()) {
+                const qreal bx = 6.0, by = 9.0;   // badge centre offset from icon centre
+                const qreal bw = 20.0, bh = 11.0;  // badge size
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(QColor(30, 180, 60));
+                painter->drawRoundedRect(QRectF(bx - bw / 2, by - bh / 2, bw, bh), 3, 3);
+                painter->setPen(Qt::white);
+                QFont badgeFont("Arial", 5, QFont::Bold);
+                painter->setFont(badgeFont);
+                painter->drawText(QRectF(bx - bw / 2, by - bh / 2, bw, bh),
+                                  Qt::AlignCenter, "HOST PC");
+            }
+        }
+    }
+
     // Device name label below icon
     painter->setPen(Qt::black);
     QFont nameFont("Arial", 8);
@@ -291,14 +309,33 @@ void DeviceItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 void DeviceItem::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
 {
     QMenu menu;
-    QAction *configAction = menu.addAction("Configure...");
-    QAction *deleteAction = menu.addAction("Delete");
+    QAction *configAction  = menu.addAction("Configure...");
+
+    // Host PC actions are only meaningful for routers
+    QAction *hostPCAction  = nullptr;
+    if (m_device->deviceType() == Device::Type::Router) {
+        auto *router = qobject_cast<Router *>(m_device);
+        if (router) {
+            menu.addSeparator();
+            if (router->isHostPC())
+                hostPCAction = menu.addAction("Clear Host PC Designation");
+            else
+                hostPCAction = menu.addAction("Designate as Host PC...");
+        }
+    }
+
+    menu.addSeparator();
+    QAction *deleteAction  = menu.addAction("Delete");
 
     QAction *chosen = menu.exec(event->screenPos());
     event->accept();
 
     if (chosen == configAction) {
         openConfigDialog();
+    } else if (hostPCAction && chosen == hostPCAction) {
+        auto *router = qobject_cast<Router *>(m_device);
+        if (router)
+            emit hostPCDesignated(!router->isHostPC());
     } else if (chosen == deleteAction) {
         // Emit via queued connection so this event handler fully unwinds
         // before the item is deleted by NetworkCanvas.

@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
 set(SOURCES
     src/main.cpp
@@ -86,6 +86,7 @@ target_link_libraries(NetworkEmulator PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::Network
 )
 
 # ---------------------------------------------------------------------------
@@ -99,6 +100,7 @@ target_link_libraries(NetworkEmulatorTests PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::Network
 )
 
 if(WIN32)

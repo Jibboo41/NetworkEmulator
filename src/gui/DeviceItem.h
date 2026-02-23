@@ -29,6 +29,9 @@ public:
 
 signals:
     void deleteRequested();
+    // Emitted when the user uses the context menu to set (true) or clear (false)
+    // the Host PC designation on a Router.
+    void hostPCDesignated(bool enable);
 
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;

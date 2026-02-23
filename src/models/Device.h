@@ -14,6 +14,10 @@ struct NetworkInterface {
     QString subnetMask;
     int     ospfCost   = 1;
     QString description;
+    // When the owning Router is designated as Host PC, this holds the
+    // name of the real host network adapter this virtual interface maps to
+    // (e.g. "eth0", "enp3s0", "wlan0"). Empty = no mapping.
+    QString hostInterfaceName;
 
     bool    isConfigured() const { return !ipAddress.isEmpty() && !subnetMask.isEmpty(); }
     quint32 ipAsUint32()   const { return IpUtils::parse(ipAddress); }
@@ -123,6 +127,12 @@ public:
     const RIPv2Config        &ripv2Config()  const { return m_ripv2Config; }
     const PIMDMConfig        &pimdmConfig()  const { return m_pimdmConfig; }
 
+    // Host PC designation ---------------------------------------------------
+    // When true, this router represents the physical machine running the emulator.
+    // Each interface's hostInterfaceName maps to a real host network adapter.
+    bool isHostPC() const          { return m_isHostPC; }
+    void setIsHostPC(bool v)       { m_isHostPC = v; }
+
     // Computed by simulation ------------------------------------------------
     QList<RoutingEntry>       &computedRoutingTable()       { return m_routingTable; }
     const QList<RoutingEntry> &computedRoutingTable() const { return m_routingTable; }
@@ -134,6 +144,7 @@ public:
 
 private:
     RoutingProtocol    m_protocol = RoutingProtocol::Static;
+    bool               m_isHostPC = false;
     QList<StaticRoute> m_staticRoutes;
     OSPFConfig         m_ospfConfig;
     RIPv2Config        m_ripv2Config;

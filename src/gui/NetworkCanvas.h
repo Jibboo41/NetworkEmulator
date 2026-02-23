@@ -33,6 +33,7 @@ protected:
 
 private:
     void connectItemSignals(DeviceItem *item);
+    void onHostPCDesignated(DeviceItem *item, bool enable);
     void placeDevice(Device::Type type, const QPointF &scenePos);
     void startConnect(DeviceItem *item);
     void finishConnect(DeviceItem *item);

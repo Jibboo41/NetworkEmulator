@@ -8,22 +8,24 @@
 QJsonObject NetworkInterface::toJson() const
 {
     QJsonObject obj;
-    obj["name"]        = name;
-    obj["ipAddress"]   = ipAddress;
-    obj["subnetMask"]  = subnetMask;
-    obj["ospfCost"]    = ospfCost;
-    obj["description"] = description;
+    obj["name"]              = name;
+    obj["ipAddress"]         = ipAddress;
+    obj["subnetMask"]        = subnetMask;
+    obj["ospfCost"]          = ospfCost;
+    obj["description"]       = description;
+    obj["hostInterfaceName"] = hostInterfaceName;
     return obj;
 }
 
 NetworkInterface NetworkInterface::fromJson(const QJsonObject &obj)
 {
     NetworkInterface iface;
-    iface.name        = obj["name"].toString();
-    iface.ipAddress   = obj["ipAddress"].toString();
-    iface.subnetMask  = obj["subnetMask"].toString();
-    iface.ospfCost    = obj["ospfCost"].toInt(1);
-    iface.description = obj["description"].toString();
+    iface.name              = obj["name"].toString();
+    iface.ipAddress         = obj["ipAddress"].toString();
+    iface.subnetMask        = obj["subnetMask"].toString();
+    iface.ospfCost          = obj["ospfCost"].toInt(1);
+    iface.description       = obj["description"].toString();
+    iface.hostInterfaceName = obj["hostInterfaceName"].toString();
     return iface;
 }
 
@@ -131,6 +133,8 @@ QJsonObject Router::toJson() const
     for (const auto &i : m_pimdmConfig.enabledInterfaces) pimIfaces.append(i);
     obj["pimDmInterfaces"] = pimIfaces;
 
+    obj["isHostPC"] = m_isHostPC;
+
     return obj;
 }
 
@@ -165,6 +169,8 @@ Router *Router::fromJson(const QJsonObject &obj, QObject *parent)
 
     for (const auto &v : obj["pimDmInterfaces"].toArray())
         r->m_pimdmConfig.enabledInterfaces.append(v.toString());
+
+    r->m_isHostPC = obj["isHostPC"].toBool(false);
 
     return r;
 }

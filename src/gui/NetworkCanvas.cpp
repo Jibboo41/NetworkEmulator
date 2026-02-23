@@ -191,6 +191,33 @@ void NetworkCanvas::connectItemSignals(DeviceItem *item)
     connect(item, &DeviceItem::deleteRequested, this, [this, item]() {
         deleteDeviceItem(item);
     }, Qt::QueuedConnection);
+
+    connect(item, &DeviceItem::hostPCDesignated, this, [this, item](bool enable) {
+        onHostPCDesignated(item, enable);
+    }, Qt::QueuedConnection);
+}
+
+void NetworkCanvas::onHostPCDesignated(DeviceItem *item, bool enable)
+{
+    // Only one router may be Host PC at a time; clear all others first.
+    for (DeviceItem *di : m_deviceItems) {
+        if (auto *r = qobject_cast<Router *>(di->device())) {
+            r->setIsHostPC(false);
+            di->update();
+        }
+    }
+
+    if (enable) {
+        if (auto *r = qobject_cast<Router *>(item->device())) {
+            r->setIsHostPC(true);
+            item->update();
+            emit statusMessage(
+                QString("%1 designated as Host PC. Configure interface mappings via double-click.")
+                .arg(r->name()));
+        }
+    } else {
+        emit statusMessage("Host PC designation cleared.");
+    }
 }
 
 // ---------------------------------------------------------------------------

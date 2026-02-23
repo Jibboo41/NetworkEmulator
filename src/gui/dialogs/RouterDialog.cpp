@@ -18,6 +18,7 @@
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <QScrollArea>
+#include <QNetworkInterface>
 #include "utils/IpUtils.h"
 
 RouterDialog::RouterDialog(Router *router, QWidget *parent)
@@ -38,6 +39,7 @@ RouterDialog::RouterDialog(Router *router, QWidget *parent)
     auto *tabs = new QTabWidget;
     buildInterfacesTab(tabs);
     buildRoutingTab(tabs);
+    buildHostPCTab(tabs);
     mainLayout->addWidget(tabs);
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -179,6 +181,87 @@ void RouterDialog::buildRoutingTab(QTabWidget *tabs)
     tabs->addTab(widget, "Routing");
 }
 
+void RouterDialog::buildHostPCTab(QTabWidget *tabs)
+{
+    auto *page   = new QWidget;
+    auto *layout = new QVBoxLayout(page);
+
+    m_hostPCCheck = new QCheckBox(
+        "Act as Host PC (bridge this router's interfaces to physical network adapters)");
+    layout->addWidget(m_hostPCCheck);
+
+    // Description label
+    auto *descLabel = new QLabel(
+        "When enabled, each virtual interface below can be mapped to a real network adapter\n"
+        "on this machine. Traffic sent to that interface will travel over the physical adapter,\n"
+        "allowing the emulated network to communicate with real routers, switches, and PCs.");
+    descLabel->setWordWrap(true);
+    descLabel->setStyleSheet("color: #555; font-size: 11px;");
+    layout->addWidget(descLabel);
+
+    // Mapping panel (shown/hidden based on checkbox)
+    m_hostPCMappingWidget = new QWidget;
+    auto *mappingLayout   = new QGridLayout(m_hostPCMappingWidget);
+    mappingLayout->addWidget(new QLabel("<b>Virtual Interface</b>"), 0, 0);
+    mappingLayout->addWidget(new QLabel("<b>Physical Adapter</b>"),  0, 1);
+
+    // Collect all real host interfaces once
+    QStringList hostIfaceNames;
+    hostIfaceNames << "(none)";
+    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
+        // Skip loopback and interfaces that are definitely not useful
+        if (iface.flags().testFlag(QNetworkInterface::IsLoopBack))
+            continue;
+        // Build a friendly display string: "eth0 (192.168.1.10)"
+        QString display = iface.name();
+        const auto addrs = iface.addressEntries();
+        for (const auto &entry : addrs) {
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                display += QString(" (%1)").arg(entry.ip().toString());
+                break;
+            }
+        }
+        hostIfaceNames << display;
+    }
+
+    const auto &ifaces = m_router->interfaces();
+    for (int i = 0; i < ifaces.size(); ++i) {
+        mappingLayout->addWidget(new QLabel(ifaces[i].name), i + 1, 0);
+
+        auto *combo = new QComboBox;
+        combo->addItems(hostIfaceNames);
+        // Pre-select if a mapping already exists
+        const QString &existing = ifaces[i].hostInterfaceName;
+        if (!existing.isEmpty()) {
+            // Match by interface name prefix (the part before " (")
+            for (int j = 1; j < combo->count(); ++j) {
+                if (combo->itemText(j).startsWith(existing)) {
+                    combo->setCurrentIndex(j);
+                    break;
+                }
+            }
+        }
+        mappingLayout->addWidget(combo, i + 1, 1);
+        m_ifHostComboBoxes.append(combo);
+    }
+
+    layout->addWidget(m_hostPCMappingWidget);
+    layout->addStretch();
+
+    // Initialize visibility
+    m_hostPCMappingWidget->setEnabled(m_router->isHostPC());
+    m_hostPCCheck->setChecked(m_router->isHostPC());
+
+    connect(m_hostPCCheck, &QCheckBox::toggled, this, &RouterDialog::onHostPCToggled);
+
+    tabs->addTab(page, "Host PC");
+}
+
+void RouterDialog::onHostPCToggled(bool checked)
+{
+    m_hostPCMappingWidget->setEnabled(checked);
+}
+
 void RouterDialog::populateFields()
 {
     const auto &ifaces = m_router->interfaces();
@@ -308,6 +391,21 @@ bool RouterDialog::validateAndApply()
     for (int i = 0; i < m_pimIfaceList->count(); ++i) {
         if (m_pimIfaceList->item(i)->checkState() == Qt::Checked)
             m_router->pimdmConfig().enabledInterfaces.append(m_pimIfaceList->item(i)->text());
+    }
+
+    // Host PC
+    m_router->setIsHostPC(m_hostPCCheck->isChecked());
+    auto &ifaceList2 = m_router->interfaces();
+    for (int i = 0; i < ifaceList2.size() && i < m_ifHostComboBoxes.size(); ++i) {
+        const QString selected = m_ifHostComboBoxes[i]->currentText();
+        if (selected == "(none)") {
+            ifaceList2[i].hostInterfaceName.clear();
+        } else {
+            // Store just the raw interface name (strip the " (IP)" suffix if present)
+            const int spaceIdx = selected.indexOf(' ');
+            ifaceList2[i].hostInterfaceName = (spaceIdx > 0)
+                ? selected.left(spaceIdx) : selected;
+        }
     }
 
     return true;
